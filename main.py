@@ -6,7 +6,48 @@ import time
 import customtkinter as ctk
 from tkinter import messagebox
 from PIL import Image
-import winsound
+
+import wave
+import math
+import struct
+
+os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'
+import pygame
+
+def create_beep_wav(filename, freq=1000, duration_ms=40, volume=0.1):
+    if os.path.exists(filename):
+        return
+    sample_rate = 44100
+    n_samples = int(sample_rate * (duration_ms / 1000.0))
+    try:
+        with wave.open(filename, 'w') as wav_file:
+            wav_file.setnchannels(1)
+            wav_file.setsampwidth(2)
+            wav_file.setframerate(sample_rate)
+            for i in range(n_samples):
+                t = float(i) / sample_rate
+                value = int(volume * 32767.0 * math.sin(2.0 * math.pi * freq * t))
+                # Fade in and fade out to avoid clicks
+                if i < 400: value = int(value * (i / 400))
+                if i > n_samples - 400: value = int(value * ((n_samples - i) / 400))
+                data = struct.pack('<h', value)
+                wav_file.writeframesraw(data)
+    except Exception:
+        pass
+
+SOUND_ENABLED = False
+start_sound = None
+stop_sound = None
+try:
+    pygame.mixer.init()
+    # Frequencies and volumes are kept low for a soft, pleasant sound
+    create_beep_wav("start_beep.wav", freq=600, duration_ms=100, volume=0.03)
+    create_beep_wav("stop_beep.wav", freq=300, duration_ms=100, volume=0.03)
+    start_sound = pygame.mixer.Sound("start_beep.wav")
+    stop_sound = pygame.mixer.Sound("stop_beep.wav")
+    SOUND_ENABLED = True
+except Exception:
+    pass
 
 from pynput import keyboard, mouse
 from pynput.keyboard import Key, KeyCode, Controller as KeyboardController
@@ -743,12 +784,12 @@ class MacroApp(ctk.CTk):
     # --- Macro Logic ---
     
     def _play_sound(self, mode):
-        if not self.sound_alerts.get(): return
+        if not self.sound_alerts.get() or not SOUND_ENABLED: return
         def play():
-            if mode == "start":
-                winsound.Beep(1800, 40)
-            elif mode == "stop":
-                winsound.Beep(900, 40)
+            if mode == "start" and start_sound:
+                start_sound.play()
+            elif mode == "stop" and stop_sound:
+                stop_sound.play()
         threading.Thread(target=play, daemon=True).start()
 
     def toggle_running(self):
