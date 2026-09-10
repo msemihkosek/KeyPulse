@@ -270,6 +270,14 @@ class MacroApp(ctk.CTk):
         self.geometry("1100x750")
         self.minsize(1050, 700)
         self.configure(fg_color=CYBER_BG)
+        
+        try:
+            from PIL import ImageTk
+            img = Image.open("logo.png")
+            photo = ImageTk.PhotoImage(img)
+            self.wm_iconphoto(False, photo)
+        except Exception:
+            pass
 
         # Controllers & Threading
         self.keyboard_controller = KeyboardController()

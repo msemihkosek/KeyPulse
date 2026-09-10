@@ -27,41 +27,26 @@
 
 ---
 
-## 🚀 Kurulum
+## 🚀 Kurulum ve Kullanım
 
-Projeyi yerel bilgisayarınızda çalıştırmak için aşağıdaki adımları izleyin:
+Kullanıcı dostu kurulum dosyaları sayesinde projeyi başlatmak artık çok daha kolay! İlk çalıştırmada gerekli indirmeler otomatik olarak yapılır. 
 
-### 1. Gereksinimler
-- Bilgisayarınızda [Python 3.8 veya üzeri](https://www.python.org/downloads/) yüklü olmalıdır.
+### 🪟 Windows Kullanıcıları İçin:
+1. Proje dosyalarını indirin ve klasöre çıkartın.
+2. Klasör içerisindeki **`baslat_windows.bat`** dosyasına çift tıklayın.
+3. *İlk açılışta siyah bir komut penceresinde gerekli kütüphaneler otomatik olarak indirilecektir. İşlem bitince program kendi açılır.*
 
-### 2. İndirme ve Kurulum
-Terminali (veya PowerShell'i) açın ve sırasıyla aşağıdaki komutları çalıştırın:
-
-```powershell
-# Depoyu klonlayın
-git clone https://github.com/KULLANICI_ADINIZ/KeyPulse.git
-cd KeyPulse
-
-# Sanal ortam (virtual environment) oluşturun ve aktifleştirin
-py -m venv .venv
-
-# Windows için sanal ortamı aktifleştirme:
-.\.venv\Scripts\Activate.ps1
-# (Mac/Linux için: source .venv/bin/activate)
-
-# Gerekli kütüphaneleri yükleyin
-pip install -r requirements.txt
-```
-
----
-
-## 💻 Kullanım
-
-Uygulamayı başlatmak için proje dizininde şu komutu çalıştırın:
-
-```powershell
-python main.py
-```
+### 🍎 Mac ve 🐧 Linux Kullanıcıları İçin:
+1. Terminalinizi açın ve indirdiğiniz proje klasörüne gidin:
+   ```bash
+   cd KeyPulse
+   ```
+2. Çalıştırma iznini verip scripti başlatın:
+   ```bash
+   chmod +x baslat_mac_linux.sh
+   ./baslat_mac_linux.sh
+   ```
+*(Not: Mac ve Linux kullanıcılarının klavye dinlemesi için "Erişilebilirlik (Accessibility)" izinlerini sistem ayarlarından ilgili terminal uygulamasına vermesi gerekir).*
 
 ### Adım Adım Makro Ayarlama:
 1. **Tetikleyici Seçimi:** Makroyu başlatmak/durdurmak için bir tuş seçin. Tuşu atamak için **"Ata"** butonuna basın ve klavyenizden istediğiniz tuşa basın.
@@ -81,7 +66,7 @@ python main.py
 
 ## 🤝 Katkıda Bulunma
 
-Geliştirmelere açığız! Lütfen bir Pull Request göndermekten çekinmeyin. Hata bildirimi veya özellik önerisi için [Issues](https://github.com/KULLANICI_ADINIZ/KeyPulse/issues) sekmesini kullanabilirsiniz.
+Geliştirmelere açığız! Lütfen bir Pull Request göndermekten çekinmeyin. Hata bildirimi veya özellik önerisi için [Issues](https://github.com/msemihkosek/KeyPulse/issues) sekmesini kullanabilirsiniz.
 
 <div align="center">
   <sub>❤️ ile Python ve CustomTkinter kullanılarak geliştirildi.</sub>
