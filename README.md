@@ -65,7 +65,3 @@
 ## 🤝 Katkıda Bulunma
 
 Geliştirmelere açığız! Lütfen bir Pull Request göndermekten çekinmeyin. Hata bildirimi veya özellik önerisi için [Issues](https://github.com/msemihkosek/KeyPulse/issues) sekmesini kullanabilirsiniz.
-
-<div align="center">
-  <sub>❤️ ile Python ve CustomTkinter kullanılarak geliştirildi.</sub>
-</div>
