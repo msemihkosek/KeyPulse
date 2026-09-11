@@ -2,6 +2,7 @@ import json
 import os
 import random
 import threading
+import sys
 import time
 import customtkinter as ctk
 from tkinter import messagebox
@@ -13,6 +14,21 @@ import struct
 
 os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'
 import pygame
+
+def resource_path(relative_path):
+    """ Get absolute path to resource, works for dev and for PyInstaller """
+    try:
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+    return os.path.join(base_path, relative_path)
+
+def get_profile_path():
+    r""" Returns the profile.json path inside %APPDATA%\KeyPulse\ """
+    appdata = os.environ.get("APPDATA", os.path.expanduser("~"))
+    folder = os.path.join(appdata, "KeyPulse")
+    os.makedirs(folder, exist_ok=True)
+    return os.path.join(folder, "profile.json")
 
 def create_beep_wav(filename, freq=1000, duration_ms=40, volume=0.1):
     if os.path.exists(filename):
@@ -35,21 +51,26 @@ def create_beep_wav(filename, freq=1000, duration_ms=40, volume=0.1):
     except Exception:
         pass
 
+import tempfile
+_TEMP_DIR = tempfile.gettempdir()
+_START_BEEP = os.path.join(_TEMP_DIR, "keypulse_start.wav")
+_STOP_BEEP = os.path.join(_TEMP_DIR, "keypulse_stop.wav")
+
 SOUND_ENABLED = False
 start_sound = None
 stop_sound = None
 try:
     pygame.mixer.init()
-    # Frequencies and volumes are kept low for a soft, pleasant sound
-    create_beep_wav("start_beep.wav", freq=600, duration_ms=100, volume=0.03)
-    create_beep_wav("stop_beep.wav", freq=300, duration_ms=100, volume=0.03)
-    start_sound = pygame.mixer.Sound("start_beep.wav")
-    stop_sound = pygame.mixer.Sound("stop_beep.wav")
+    # Ses dosyaları %TEMP% klasörüne geçici olarak oluşturulur
+    create_beep_wav(_START_BEEP, freq=600, duration_ms=100, volume=0.03)
+    create_beep_wav(_STOP_BEEP, freq=300, duration_ms=100, volume=0.03)
+    start_sound = pygame.mixer.Sound(_START_BEEP)
+    stop_sound = pygame.mixer.Sound(_STOP_BEEP)
     SOUND_ENABLED = True
 except Exception:
     pass
 
-from pynput import keyboard, mouse
+from pynput import keyboard
 from pynput.keyboard import Key, KeyCode, Controller as KeyboardController
 from pynput.mouse import Button, Controller as MouseController
 
@@ -273,7 +294,7 @@ class MacroApp(ctk.CTk):
         
         try:
             from PIL import ImageTk
-            img = Image.open("logo.png")
+            img = Image.open(resource_path("logo.png"))
             photo = ImageTk.PhotoImage(img)
             self.wm_iconphoto(False, photo)
         except Exception:
@@ -758,16 +779,17 @@ class MacroApp(ctk.CTk):
             "app_language": self.app_language.get()
         }
         try:
-            with open("profile.json", "w", encoding="utf-8") as f:
+            with open(get_profile_path(), "w", encoding="utf-8") as f:
                 json.dump(data, f, indent=4)
             self.i18n["event_var"].configure(text=self.t["prof_saved"])
         except Exception as e:
             messagebox.showerror(self.t["err_title"], str(e))
 
     def load_profile(self):
-        if not os.path.exists("profile.json"): return
+        profile_path = get_profile_path()
+        if not os.path.exists(profile_path): return
         try:
-            with open("profile.json", "r", encoding="utf-8") as f:
+            with open(profile_path, "r", encoding="utf-8") as f:
                 data = json.load(f)
                 
             self.trigger_value.set(data.get("trigger_value", "F8"))

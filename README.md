@@ -29,12 +29,10 @@
 
 ## 🚀 Kurulum ve Kullanım
 
-Kullanıcı dostu kurulum dosyaları sayesinde projeyi başlatmak artık çok daha kolay! İlk çalıştırmada gerekli indirmeler otomatik olarak yapılır. 
-
 ### 🪟 Windows Kullanıcıları İçin:
+
 1. Proje dosyalarını indirin ve klasöre çıkartın.
-2. Klasör içerisindeki **`baslat_windows.bat`** dosyasına çift tıklayın.
-3. *İlk açılışta siyah bir komut penceresinde gerekli kütüphaneler otomatik olarak indirilecektir. İşlem bitince program kendi açılır.*
+2. **`KeyPulse.exe`** dosyasına çift tıklayın — Python veya başka bir kurulum gerekmez, doğrudan açılır.
 
 ### 🍎 Mac ve 🐧 Linux Kullanıcıları İçin:
 1. Terminalinizi açın ve indirdiğiniz proje klasörüne gidin:
