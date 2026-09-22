@@ -50,8 +50,8 @@
 1. **Tetikleyici Seçimi:** Makroyu başlatmak/durdurmak için bir tuş seçin. Tuşu atamak için **"Ata"** butonuna basın ve klavyenizden istediğiniz tuşa basın.
 2. **Aksiyon Seçimi:** Makronun ne yapmasını istediğinizi seçin (Örn: Boşluk tuşuna bas veya Farenin Sol tuşuna tıkla).
 3. **Zamanlama:** Tekrarlanma süresini belirleyin (Süresiz veya belirli bir süre için). Basımlar arasındaki bekleme süresini (interval) girin.
-4. **Çalıştırma:** Arayüzdeki **Başlat** butonuna basıp ardından belirlediğiniz *Tetik Tuşuna* basarak makroyu aktif edebilirsiniz.
-5. **Durdurma:** Tetik tuşuna tekrar bastığınızda makro anında durur.
+4. **Çalıştırma:** Arayüzdeki **Etkinleştir** butonuna bastığınızda buton sarı renge dönüp tetik tuşunuzu beklemeye geçer. Belirlediğiniz *Tetik Tuşuna* bastığınızda makro aktif olur ve buton kırmızı renkte çalışıyor durumuna geçer.
+5. **Durdurma / Duraklatma:** Tetik tuşuna tekrar bastığınızda makro geçici olarak duraklar. Dinlemeyi tamamen kapatmak için arayüzdeki butona tıklayabilirsiniz.
 
 ---
 

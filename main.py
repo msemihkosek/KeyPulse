@@ -23,12 +23,15 @@ def resource_path(relative_path):
         base_path = os.path.abspath(".")
     return os.path.join(base_path, relative_path)
 
-def get_profile_path():
-    r""" Returns the profile.json path inside %APPDATA%\KeyPulse\ """
+def get_settings_path():
+    r""" Returns the settings.json path inside %APPDATA%\KeyPulse\ (internal to app, no external files) """
     appdata = os.environ.get("APPDATA", os.path.expanduser("~"))
     folder = os.path.join(appdata, "KeyPulse")
     os.makedirs(folder, exist_ok=True)
-    return os.path.join(folder, "profile.json")
+    return os.path.join(folder, "settings.json")
+
+def get_profile_path():
+    return get_settings_path()
 
 def create_beep_wav(filename, freq=1000, duration_ms=40, volume=0.1):
     if os.path.exists(filename):
@@ -157,16 +160,23 @@ LANGUAGES = {
         "ev_active": "Listener is active",
         "ev_assign_wait": "Assignment: Listening...",
         "ev_assign_succ": "Assignment successful: {}",
-        "prof_saved": "Profile saved successfully.",
+        "prof_saved": "Profile & keys saved successfully.",
         "prof_loaded": "Profile loaded.",
+        "settings_saved": "Profile saved successfully.",
+        "btn_save_settings": "SAVE PROFILE & SETTINGS",
+        "btn_save_profile": "SAVE PROFILE",
+        "btn_profile_saved": "SAVED! ✓",
         "err_title": "Error",
         "err_num": "Please enter duration in correct numerical format.",
         "live_telemetry": "> LIVE TELEMETRY",
         "leg_trigger": " Trigger Key",
         "leg_action": " Action Key",
-        "btn_settings": "SETTINGS / PROFILES",
+        "btn_settings": "SETTINGS",
         "btn_start": "START",
         "btn_stop": "STOP",
+        "btn_arm": "ACTIVATE [{}]",
+        "btn_waiting": "WAITING [{}]... (CANCEL)",
+        "btn_running": "RUNNING (STOP)",
         "sec_trigger": "TRIGGER",
         "sec_trigger_desc": "Initiation key",
         "lbl_trigger_key": "Trigger Keyboard Key:",
@@ -191,9 +201,9 @@ LANGUAGES = {
         "set_kbd": "Keyboard Layout",
         "set_game": "Game Mode (±20% Delay Variance)",
         "set_sound": "Sound Alerts (On/Off)",
-        "set_prof": "Profile Management",
-        "btn_load": "Load Profile",
-        "btn_save": "Save Profile",
+        "set_prof": "Settings",
+        "btn_load": "Load Settings",
+        "btn_save": "Save Settings",
         "mouse_L": "L",
         "mouse_M": "M",
         "mouse_R": "R",
@@ -211,16 +221,23 @@ LANGUAGES = {
         "ev_active": "Dinleyici aktif",
         "ev_assign_wait": "Atama: Dinleniyor...",
         "ev_assign_succ": "Atama basarili: {}",
-        "prof_saved": "Profil basariyla kaydedildi.",
+        "prof_saved": "Profil ve tuş atamaları başarıyla kaydedildi.",
         "prof_loaded": "Profil yuklendi.",
+        "settings_saved": "Profil kaydedildi.",
+        "btn_save_settings": "PROFİLİ & AYARLARI KAYDET",
+        "btn_save_profile": "PROFİLİ KAYDET",
+        "btn_profile_saved": "KAYDEDİLDİ! ✓",
         "err_title": "Hata",
         "err_num": "Lutfen sureleri dogru (sayisal) formatta girin.",
         "live_telemetry": "> CANLI TELEMETRI",
         "leg_trigger": " Tetikleyici Tuş",
         "leg_action": " Aksiyon Tuşu",
-        "btn_settings": "AYARLAR / PROFILLER",
-        "btn_start": "BAŞLAT]",
+        "btn_settings": "AYARLAR",
+        "btn_start": "BAŞLAT",
         "btn_stop": "DURDUR",
+        "btn_arm": "ETKİNLEŞTİR [{}]",
+        "btn_waiting": "{} BEKLENİYOR... (İPTAL)",
+        "btn_running": "ÇALIŞIYOR (DURDUR)",
         "sec_trigger": "TETİKLEYİCİ",
         "sec_trigger_desc": "Başlatma tuşu",
         "lbl_trigger_key": "Tetik Klavye Tuşu:",
@@ -245,9 +262,9 @@ LANGUAGES = {
         "set_kbd": "Klavye Dili",
         "set_game": "Oyun Modu (±%20 Gecikme Sapması)",
         "set_sound": "Sesli Bildirimler (Açık/Kapalı)",
-        "set_prof": "Profil Yönetimi",
-        "btn_load": "Profili Yükle",
-        "btn_save": "Profili Kaydet",
+        "set_prof": "Ayarlar",
+        "btn_load": "Ayarları Yükle",
+        "btn_save": "Ayarları Kaydet",
         "mouse_L": "SOL",
         "mouse_M": "M",
         "mouse_R": "SAG",
@@ -260,6 +277,7 @@ CYBER_BG = "#080d14"
 CYBER_PANEL = "#0b141f"
 CYBER_ACCENT = "#00e5ff"
 CYBER_GREEN = "#00ff9d"
+CYBER_YELLOW = "#ffb700"
 CYBER_RED = "#ff2a2a"
 CYBER_TEXT = "#d9f7ff"
 CYBER_DIM_TEXT = "#6f8997"
@@ -275,21 +293,24 @@ class MacroApp(ctk.CTk):
         
         self.trigger_value = ctk.StringVar(value="f8")
         self.action_key_value = ctk.StringVar(value="space")
-        self.duration_hours = ctk.StringVar(value="0")
-        self.duration_minutes = ctk.StringVar(value="1")
-        self.duration_seconds = ctk.StringVar(value="0")
-        self.interval = ctk.StringVar(value="0.10")
+        self.duration_hours = ctk.StringVar(value="")
+        self.duration_minutes = ctk.StringVar(value="")
+        self.duration_seconds = ctk.StringVar(value="")
+        self.interval = ctk.StringVar(value="")
         
         self.game_mode = ctk.BooleanVar(value=False)
         self.sound_alerts = ctk.BooleanVar(value=True)
-        self.app_language = ctk.StringVar(value="English")
-        self.keyboard_layout = ctk.StringVar(value="English QWERTY")
+        self.app_language = ctk.StringVar(value="Türkçe")
+        self.keyboard_layout = ctk.StringVar(value="Türkçe Q")
         
-        self.t = LANGUAGES[self.app_language.get()]
+        # Load embedded settings automatically on startup
+        self.load_settings()
+        
+        self.t = LANGUAGES.get(self.app_language.get(), LANGUAGES["English"])
         
         self.title(self.t["title"])
-        self.geometry("1100x750")
-        self.minsize(1050, 700)
+        self.geometry("1200x750")
+        self.minsize(1150, 700)
         self.configure(fg_color=CYBER_BG)
         
         try:
@@ -326,11 +347,16 @@ class MacroApp(ctk.CTk):
         
         self._update_all_texts()
         
-        self.trigger_value.trace_add("write", self._update_visualizer)
-        self.action_key_value.trace_add("write", self._update_visualizer)
+        self.trigger_value.trace_add("write", self._on_trigger_changed)
+        self.action_key_value.trace_add("write", self._on_action_changed)
+        self.interval.trace_add("write", self._on_protocol_changed)
+        self.duration_hours.trace_add("write", self._on_protocol_changed)
+        self.duration_minutes.trace_add("write", self._on_protocol_changed)
+        self.duration_seconds.trace_add("write", self._on_protocol_changed)
         self.keyboard_layout.trace_add("write", self._on_layout_change)
         self.app_language.trace_add("write", self._on_language_change)
         
+        self._sync_active_config()
         self._update_visualizer()
         
         self.protocol("WM_DELETE_WINDOW", self.close)
@@ -357,13 +383,17 @@ class MacroApp(ctk.CTk):
         status_frame = ctk.CTkFrame(self.sidebar, fg_color=CYBER_BG, corner_radius=8, border_width=1, border_color="#1f5268")
         status_frame.grid(row=2, column=0, padx=15, pady=10, sticky="ew")
         
-        self.status_dot = ctk.CTkLabel(status_frame, text="●", font=("Segoe UI", 24), text_color=CYBER_GREEN)
-        self.status_dot.pack(anchor="w", padx=15, pady=(10, 0))
+        status_header = ctk.CTkFrame(status_frame, fg_color="transparent")
+        status_header.pack(fill="x", padx=15, pady=(12, 4))
         
-        self.i18n['status_var'] = ctk.CTkLabel(status_frame, text="", font=("Consolas", 14, "bold"), text_color=CYBER_TEXT)
-        self.i18n['status_var'].pack(anchor="w", padx=15)
+        self.status_dot = ctk.CTkLabel(status_header, text="●", font=("Segoe UI", 28), text_color=CYBER_GREEN)
+        self.status_dot.pack(side="left", padx=(0, 8))
+        
+        self.i18n['status_var'] = ctk.CTkLabel(status_header, text="", font=("Consolas", 14, "bold"), text_color=CYBER_TEXT)
+        self.i18n['status_var'].pack(side="left")
+        
         self.i18n['status_detail'] = ctk.CTkLabel(status_frame, text="", font=("Consolas", 11), text_color=CYBER_DIM_TEXT, wraplength=250, justify="left")
-        self.i18n['status_detail'].pack(anchor="w", padx=15, pady=(0, 10))
+        self.i18n['status_detail'].pack(anchor="w", padx=15, pady=(0, 12))
 
         event_frame = ctk.CTkFrame(self.sidebar, fg_color=CYBER_BG, corner_radius=8)
         event_frame.grid(row=3, column=0, padx=15, pady=10, sticky="ew")
@@ -387,15 +417,21 @@ class MacroApp(ctk.CTk):
         self.i18n['leg_action'] = ctk.CTkLabel(l2, text="", text_color=CYBER_DIM_TEXT, font=("Consolas", 10))
         self.i18n['leg_action'].pack(side="left")
 
-        self.i18n['btn_settings'] = ctk.CTkButton(self.sidebar, text="", font=("Consolas", 12, "bold"), 
-                                          fg_color="#1f5268", text_color=CYBER_TEXT, hover_color=CYBER_ACCENT, 
-                                          height=40, command=self.open_settings)
-        self.i18n['btn_settings'].grid(row=6, column=0, padx=15, pady=(10, 5), sticky="ew")
+        self.btn_save_profile = ctk.CTkButton(self.sidebar, text="", font=("Consolas", 13, "bold"), 
+                                              fg_color="#1f5268", text_color=CYBER_TEXT, hover_color=CYBER_ACCENT, 
+                                              height=42, corner_radius=8, command=self.save_profile)
+        self.btn_save_profile.grid(row=6, column=0, padx=15, pady=(8, 4), sticky="ew")
+        self.i18n['btn_save_profile'] = self.btn_save_profile
 
-        self.start_button = ctk.CTkButton(self.sidebar, text="", font=("Consolas", 18, "bold"), 
+        self.i18n['btn_settings'] = ctk.CTkButton(self.sidebar, text="", font=("Consolas", 12, "bold"), 
+                                          fg_color="#131f2d", text_color=CYBER_TEXT, hover_color="#1f5268", 
+                                          height=38, corner_radius=8, command=self.open_settings)
+        self.i18n['btn_settings'].grid(row=7, column=0, padx=15, pady=(4, 6), sticky="ew")
+
+        self.start_button = ctk.CTkButton(self.sidebar, text="", font=("Consolas", 14, "bold"), 
                                           fg_color=CYBER_ACCENT, text_color="#000000", hover_color="#00b3cc", 
-                                          height=60, command=self.toggle_running)
-        self.start_button.grid(row=7, column=0, padx=15, pady=(5, 20), sticky="ew")
+                                          height=60, corner_radius=8, command=self.toggle_running)
+        self.start_button.grid(row=8, column=0, padx=15, pady=(6, 20), sticky="ew")
         self.i18n['btn_start'] = self.start_button
 
     def _build_dashboard(self):
@@ -477,17 +513,54 @@ class MacroApp(ctk.CTk):
         self.time_frame.pack(fill="x", pady=5)
         self.i18n['lbl_duration'] = ctk.CTkLabel(self.time_frame, text="", font=("Consolas", 11), text_color=CYBER_DIM_TEXT)
         self.i18n['lbl_duration'].pack(side="left", padx=(0, 5))
-        ctk.CTkEntry(self.time_frame, textvariable=self.duration_hours, width=35, height=30, fg_color=CYBER_BG, text_color=CYBER_TEXT).pack(side="left")
-        ctk.CTkLabel(self.time_frame, text=":", text_color=CYBER_ACCENT).pack(side="left")
-        ctk.CTkEntry(self.time_frame, textvariable=self.duration_minutes, width=35, height=30, fg_color=CYBER_BG, text_color=CYBER_TEXT).pack(side="left")
-        ctk.CTkLabel(self.time_frame, text=":", text_color=CYBER_ACCENT).pack(side="left")
-        ctk.CTkEntry(self.time_frame, textvariable=self.duration_seconds, width=35, height=30, fg_color=CYBER_BG, text_color=CYBER_TEXT).pack(side="left")
+        self.entry_dur_h = ctk.CTkEntry(
+            self.time_frame, width=38, height=30,
+            fg_color=CYBER_BG, text_color=CYBER_TEXT,
+            placeholder_text="00", placeholder_text_color="#4f6e80", justify="center"
+        )
+        self.entry_dur_h.pack(side="left")
+        ctk.CTkLabel(self.time_frame, text=":", text_color=CYBER_ACCENT, font=("Consolas", 12, "bold")).pack(side="left", padx=1)
+        
+        self.entry_dur_m = ctk.CTkEntry(
+            self.time_frame, width=38, height=30,
+            fg_color=CYBER_BG, text_color=CYBER_TEXT,
+            placeholder_text="00", placeholder_text_color="#4f6e80", justify="center"
+        )
+        self.entry_dur_m.pack(side="left")
+        ctk.CTkLabel(self.time_frame, text=":", text_color=CYBER_ACCENT, font=("Consolas", 12, "bold")).pack(side="left", padx=1)
+        
+        self.entry_dur_s = ctk.CTkEntry(
+            self.time_frame, width=38, height=30,
+            fg_color=CYBER_BG, text_color=CYBER_TEXT,
+            placeholder_text="00", placeholder_text_color="#4f6e80", justify="center"
+        )
+        self.entry_dur_s.pack(side="left")
 
         self.int_frame = ctk.CTkFrame(l_inner, fg_color="transparent")
         self.int_frame.pack(fill="x", pady=5)
         self.i18n['lbl_interval'] = ctk.CTkLabel(self.int_frame, text="", font=("Consolas", 12), text_color=CYBER_DIM_TEXT)
         self.i18n['lbl_interval'].pack(side="left", padx=(0, 10))
-        ctk.CTkEntry(self.int_frame, textvariable=self.interval, width=80, height=30, fg_color=CYBER_BG, text_color=CYBER_TEXT).pack(side="left")
+        self.entry_interval = ctk.CTkEntry(
+            self.int_frame, width=80, height=30,
+            fg_color=CYBER_BG, text_color=CYBER_TEXT,
+            placeholder_text="0.10", placeholder_text_color="#4f6e80", justify="center"
+        )
+        self.entry_interval.pack(side="left")
+
+        for e in (self.entry_dur_h, self.entry_dur_m, self.entry_dur_s):
+            e.bind("<KeyRelease>", lambda ev, w=e: self._on_dur_key_release(w))
+            e.bind("<FocusOut>", lambda ev, w=e: self._on_protocol_focus_out(w))
+            e.bind("<space>", lambda ev, w=e: self._on_protocol_space(w))
+            
+        self.entry_interval.bind("<KeyRelease>", lambda ev: self._on_int_key_release(self.entry_interval))
+        self.entry_interval.bind("<FocusOut>", lambda ev: self._on_protocol_focus_out(self.entry_interval))
+        self.entry_interval.bind("<space>", lambda ev: self._on_protocol_space(self.entry_interval))
+
+        if hasattr(self, "_saved_protocol"):
+            self._set_protocol_val("entry_dur_h", self._saved_protocol.get("duration_hours", ""))
+            self._set_protocol_val("entry_dur_m", self._saved_protocol.get("duration_minutes", ""))
+            self._set_protocol_val("entry_dur_s", self._saved_protocol.get("duration_seconds", ""))
+            self._set_protocol_val("entry_interval", self._saved_protocol.get("interval", ""))
 
         # 04 VISUALIZER
         self._build_visualizer(dash)
@@ -532,8 +605,9 @@ class MacroApp(ctk.CTk):
 
     def open_settings(self):
         w = ctk.CTkToplevel(self)
-        w.title("Settings")
-        w.geometry("380x420")
+        w.title(self.t.get("set_title", "Settings").replace("> ", ""))
+        w.geometry("380x430")
+        w.resizable(False, False)
         w.configure(fg_color=CYBER_PANEL)
         w.grab_set()
         w.focus()
@@ -552,14 +626,17 @@ class MacroApp(ctk.CTk):
         f2.pack(fill="x", padx=20, pady=5)
         ctk.CTkSwitch(f2, text=self.t["set_game"], variable=self.game_mode, progress_color=CYBER_GREEN, button_color="#ffffff", button_hover_color="#e0e0e0", font=("Consolas", 10)).pack(anchor="w", padx=15, pady=15)
         ctk.CTkSwitch(f2, text=self.t["set_sound"], variable=self.sound_alerts, progress_color=CYBER_GREEN, button_color="#ffffff", button_hover_color="#e0e0e0", font=("Consolas", 10)).pack(anchor="w", padx=15, pady=(0, 15))
-                      
-        f3 = ctk.CTkFrame(w, fg_color=CYBER_BG, corner_radius=8)
-        f3.pack(fill="x", padx=20, pady=5)
-        ctk.CTkLabel(f3, text=self.t["set_prof"], font=("Consolas", 12), text_color=CYBER_TEXT).pack(anchor="w", padx=15, pady=(10, 5))
-        btn_f = ctk.CTkFrame(f3, fg_color="transparent")
-        btn_f.pack(fill="x", padx=15, pady=(0, 15))
-        ctk.CTkButton(btn_f, text=self.t["btn_load"], width=130, fg_color="#1f5268", hover_color=CYBER_ACCENT, command=self.load_profile).pack(side="left", padx=(0, 10))
-        ctk.CTkButton(btn_f, text=self.t["btn_save"], width=130, fg_color="#1f5268", hover_color=CYBER_ACCENT, command=self.save_profile).pack(side="left")
+
+        def _save_and_close():
+            self.save_profile()
+            self._update_all_texts()
+            self._update_visualizer()
+            self._sync_active_config()
+            w.destroy()
+
+        ctk.CTkButton(w, text=self.t.get("btn_save_settings", "PROFİLİ & AYARLARI KAYDET"), font=("Consolas", 14, "bold"),
+                      fg_color=CYBER_ACCENT, text_color="#000000", hover_color="#00b3cc",
+                      height=50, corner_radius=8, command=_save_and_close).pack(fill="x", padx=20, pady=(18, 20))
 
     # --- UI Updaters ---
 
@@ -571,24 +648,15 @@ class MacroApp(ctk.CTk):
         self.title(self.t["title"])
         
         for key, widget in self.i18n.items():
-            if key in ("status_var", "status_detail", "event_var", "btn_assign_1", "btn_assign_2"):
+            if key in ("status_var", "status_detail", "event_var", "btn_assign_1", "btn_assign_2", "btn_start"):
                 continue
             if key == "vis_title":
                 widget.configure(text=self.t[key].format(self.keyboard_layout.get().split()[0].upper()))
-            elif key == "btn_start":
-                widget.configure(text=self.t[key].format(self.trigger_value.get().upper()))
             else:
                 widget.configure(text=self.t[key])
                 
-        # Status text fallback mapping
-        if self.is_running:
-            self.i18n["status_var"].configure(text=self.t["status_active"])
-            self.i18n["status_detail"].configure(text=self.t["status_wait"].format(self.trigger_value.get().upper()))
-            self.i18n["event_var"].configure(text=self.t["ev_active"])
-        else:
-            self.i18n["status_var"].configure(text=self.t["status_ready"])
-            self.i18n["status_detail"].configure(text=self.t["status_stop"])
-            self.i18n["event_var"].configure(text=self.t["ev_idle"])
+        self._update_start_button_state()
+        self._update_status_display()
             
         if not self.capture_trigger:
             self.i18n["btn_assign_1"].configure(text=self.t["btn_assign"])
@@ -625,6 +693,180 @@ class MacroApp(ctk.CTk):
         self.mouse_labels["middle"].configure(text=self.t["mouse_M"])
         self.mouse_labels["right"].configure(text=self.t["mouse_R"])
 
+    def _update_start_button_state(self):
+        trig = self.trigger_value.get().upper()
+        if not self.is_running:
+            text = self.t.get("btn_arm", "ETKİNLEŞTİR [{}]").format(trig)
+            self.start_button.configure(
+                text=text,
+                fg_color=CYBER_ACCENT,
+                hover_color="#00b3cc",
+                text_color="#000000"
+            )
+        elif not self.action_running:
+            text = self.t.get("btn_waiting", "{} BEKLENİYOR... (İPTAL)").format(trig)
+            self.start_button.configure(
+                text=text,
+                fg_color=CYBER_YELLOW,
+                hover_color="#d99b00",
+                text_color="#000000"
+            )
+        else:
+            text = self.t.get("btn_running", "ÇALIŞIYOR (DURDUR)")
+            self.start_button.configure(
+                text=text,
+                fg_color=CYBER_RED,
+                hover_color="#cc0000",
+                text_color="#ffffff"
+            )
+
+    def _get_protocol_val(self, name):
+        if not hasattr(self, name):
+            return ""
+        widget = getattr(self, name)
+        if getattr(widget, "_placeholder_text_active", False):
+            return ""
+        return widget.get().strip()
+
+    def _set_protocol_val(self, name, val):
+        if not hasattr(self, name):
+            return
+        widget = getattr(self, name)
+        widget.delete(0, "end")
+        val_str = str(val).strip() if val is not None else ""
+        if val_str:
+            widget.insert(0, val_str)
+        else:
+            widget._activate_placeholder()
+
+    def _on_dur_key_release(self, widget):
+        if not getattr(widget, "_placeholder_text_active", False):
+            raw = widget.get()
+            cleaned = "".join(c for c in raw if c.isdigit())
+            if cleaned != raw:
+                widget.delete(0, "end")
+                widget.insert(0, cleaned)
+        self._on_protocol_changed()
+
+    def _on_int_key_release(self, widget):
+        if not getattr(widget, "_placeholder_text_active", False):
+            raw = widget.get()
+            cleaned = "".join(c for c in raw if c.isdigit() or c in ('.', ','))
+            if cleaned != raw:
+                widget.delete(0, "end")
+                widget.insert(0, cleaned)
+        self._on_protocol_changed()
+
+    def _on_protocol_space(self, widget):
+        widget.delete(0, "end")
+        widget._activate_placeholder()
+        self._on_protocol_changed()
+        return "break"
+
+    def _on_protocol_focus_out(self, widget):
+        if widget.get().strip() == "":
+            widget._activate_placeholder()
+        self._on_protocol_changed()
+
+    def _update_status_display(self):
+        if not hasattr(self, "i18n") or "status_detail" not in self.i18n:
+            return
+            
+        trig = getattr(self, "active_trigger_value", self.trigger_value.get()).upper()
+        int_val = getattr(self, "active_interval", 0.10)
+        
+        if self.internal_rep_mode == "inf":
+            mode_lbl = self.t.get("rep_opt_inf", "Süresiz")
+        else:
+            raw_h = self._get_protocol_val("entry_dur_h")
+            try: h = int(raw_h) if raw_h else 0
+            except (ValueError, TypeError): h = 0
+            raw_m = self._get_protocol_val("entry_dur_m")
+            try: m = int(raw_m) if raw_m else 0
+            except (ValueError, TypeError): m = 0
+            raw_s = self._get_protocol_val("entry_dur_s")
+            try: s = int(raw_s) if raw_s else 0
+            except (ValueError, TypeError): s = 0
+            mode_lbl = f"{str(h).zfill(2)}:{str(m).zfill(2)}:{str(s).zfill(2)}"
+            
+        proto_tag = f"[{int_val:.2f}s | {mode_lbl}]"
+        
+        if self.is_running:
+            self.i18n["status_var"].configure(text=self.t["status_active"])
+            if self.action_running:
+                self.i18n["status_detail"].configure(
+                    text=f"{self.t['status_run']} {proto_tag}"
+                )
+                if hasattr(self, "status_dot"):
+                    self.status_dot.configure(text_color=CYBER_RED)
+            else:
+                self.i18n["status_detail"].configure(
+                    text=f"{self.t['status_wait'].format(trig)} {proto_tag}"
+                )
+                if hasattr(self, "status_dot"):
+                    self.status_dot.configure(text_color=CYBER_YELLOW)
+        else:
+            self.i18n["status_var"].configure(text=self.t["status_ready"])
+            self.i18n["status_detail"].configure(
+                text=f"{self.t['status_stop']} {proto_tag}"
+            )
+            if hasattr(self, "status_dot"):
+                self.status_dot.configure(text_color=CYBER_GREEN)
+
+    def _sync_active_config(self, *args):
+        self.active_trigger_value = self.trigger_value.get().strip()
+        self.active_act_type = self.internal_act_type
+        self.active_act_key = self.action_key_value.get().strip()
+        self.active_act_mouse = self.internal_act_mouse_val
+        
+        # Interval (supports both comma and dot seamlessly, fallback to placeholder 0.10)
+        raw_int = self._get_protocol_val("entry_interval").replace(",", ".").strip()
+        if not raw_int:
+            self.active_interval = 0.10
+        else:
+            try:
+                val = float(raw_int)
+                self.active_interval = val if val > 0 else 0.10
+            except (ValueError, TypeError):
+                self.active_interval = 0.10
+            
+        self.active_rep_mode = self.internal_rep_mode
+        if self.internal_rep_mode == "time":
+            raw_h = self._get_protocol_val("entry_dur_h")
+            try: h = int(raw_h) if raw_h else 0
+            except (ValueError, TypeError): h = 0
+            
+            raw_m = self._get_protocol_val("entry_dur_m")
+            try: m = int(raw_m) if raw_m else 0
+            except (ValueError, TypeError): m = 0
+            
+            raw_s = self._get_protocol_val("entry_dur_s")
+            try: s = int(raw_s) if raw_s else 0
+            except (ValueError, TypeError): s = 0
+            
+            self.active_duration = max(0, (h * 3600) + (m * 60) + s)
+        else:
+            self.active_duration = 0
+
+        self._update_start_button_state()
+        self._update_status_display()
+
+    def _on_trigger_changed(self, *args):
+        self._sync_active_config()
+        self._update_visualizer()
+
+    def _on_action_changed(self, *args):
+        self._sync_active_config()
+        self._update_visualizer()
+
+    def _on_protocol_changed(self, *args):
+        self._sync_active_config()
+        if hasattr(self, "i18n") and "event_var" in self.i18n:
+            mode_lbl = self.t.get("rep_opt_inf", "Süresiz") if self.internal_rep_mode == "inf" else self.t.get("rep_opt_time", "Süreli")
+            int_val = getattr(self, "active_interval", 0.10)
+            msg = f"Protokol: {int_val:.2f}s ({mode_lbl})" if self.app_language.get() == "Türkçe" else f"Protocol: {int_val:.2f}s ({mode_lbl})"
+            self.i18n["event_var"].configure(text=msg)
+
     def _on_action_type_change(self, val):
         if val == self.t["act_opt_mouse"]:
             self.internal_act_type = "mouse"
@@ -633,18 +875,21 @@ class MacroApp(ctk.CTk):
             self.internal_act_type = "key"
             self.action_key_value.set("space")
         self._update_all_texts()
+        self._sync_active_config()
         self._update_visualizer()
             
     def _on_mouse_val_change(self, val):
         for k, v in {"left": "mouse_left", "middle": "mouse_middle", "right": "mouse_right"}.items():
             if val == self.t[v]:
                 self.internal_act_mouse_val = k
+        self._sync_active_config()
         self._update_visualizer()
 
     def _on_repeat_mode_change(self, val):
         if val == self.t["rep_opt_inf"]: self.internal_rep_mode = "inf"
         else: self.internal_rep_mode = "time"
         self._update_all_texts()
+        self._sync_active_config()
 
     def _on_language_change(self, *args):
         self._update_all_texts()
@@ -749,7 +994,7 @@ class MacroApp(ctk.CTk):
         if self.capture_target == "trigger":
             self.trigger_value.set(key)
             self.i18n["btn_assign_1"].configure(text=self.t["btn_assign"], fg_color="#1f5268")
-            self.i18n["btn_start"].configure(text=self.t["btn_start"].format(key.upper()))
+            self._update_start_button_state()
         elif self.capture_target == "simple_action":
             self.action_key_value.set(key)
             self.i18n["btn_assign_2"].configure(text=self.t["btn_assign"], fg_color="#1f5268")
@@ -760,56 +1005,87 @@ class MacroApp(ctk.CTk):
         self.i18n["event_var"].configure(text=self.t["ev_assign_succ"].format(key))
         self._hide_overlay()
 
-    # --- Profile Save/Load ---
+    # --- Profile & Settings Save/Load (Embedded in AppData, no loose external files) ---
 
     def save_profile(self):
+        self._sync_active_config()
         data = {
-            "trigger_value": self.trigger_value.get(),
+            "trigger_value": self.trigger_value.get().strip().lower(),
             "internal_act_type": self.internal_act_type,
-            "action_key_value": self.action_key_value.get(),
+            "action_key_value": self.action_key_value.get().strip().lower(),
             "internal_act_mouse_val": self.internal_act_mouse_val,
             "internal_rep_mode": self.internal_rep_mode,
-            "duration_hours": self.duration_hours.get(),
-            "duration_minutes": self.duration_minutes.get(),
-            "duration_seconds": self.duration_seconds.get(),
-            "interval": self.interval.get(),
+            "duration_hours": self._get_protocol_val("entry_dur_h"),
+            "duration_minutes": self._get_protocol_val("entry_dur_m"),
+            "duration_seconds": self._get_protocol_val("entry_dur_s"),
+            "interval": self._get_protocol_val("entry_interval"),
             "game_mode": self.game_mode.get(),
             "sound_alerts": self.sound_alerts.get(),
             "keyboard_layout": self.keyboard_layout.get(),
             "app_language": self.app_language.get()
         }
         try:
-            with open(get_profile_path(), "w", encoding="utf-8") as f:
+            with open(get_settings_path(), "w", encoding="utf-8") as f:
                 json.dump(data, f, indent=4)
-            self.i18n["event_var"].configure(text=self.t["prof_saved"])
+            if hasattr(self, "i18n") and "event_var" in self.i18n:
+                self.i18n["event_var"].configure(text=self.t.get("prof_saved", "Profil ve tuş atamaları başarıyla kaydedildi."))
+            self._flash_saved_button()
+            return True
         except Exception as e:
             messagebox.showerror(self.t["err_title"], str(e))
+            return False
 
-    def load_profile(self):
-        profile_path = get_profile_path()
-        if not os.path.exists(profile_path): return
+    def _flash_saved_button(self):
+        if hasattr(self, "btn_save_profile"):
+            saved_text = self.t.get("btn_profile_saved", "KAYDEDİLDİ! ✓")
+            self.btn_save_profile.configure(text=saved_text, fg_color=CYBER_GREEN, text_color="#000000")
+            self.after(1200, lambda: self.btn_save_profile.configure(
+                text=self.t.get("btn_save_profile", "PROFİLİ KAYDET"), fg_color="#1f5268", text_color=CYBER_TEXT
+            ))
+
+    save_settings = save_profile
+
+    def load_settings(self):
+        path = get_settings_path()
+        old_path = os.path.join(os.path.dirname(path), "profile.json")
+        target_path = path if os.path.exists(path) else (old_path if os.path.exists(old_path) else None)
+        if not target_path or not os.path.exists(target_path):
+            return
         try:
-            with open(profile_path, "r", encoding="utf-8") as f:
+            with open(target_path, "r", encoding="utf-8") as f:
                 data = json.load(f)
                 
-            self.trigger_value.set(data.get("trigger_value", "F8"))
-            self.internal_act_type = data.get("internal_act_type", "key")
-            self.action_key_value.set(data.get("action_key_value", "space"))
-            self.internal_act_mouse_val = data.get("internal_act_mouse_val", "left")
-            self.internal_rep_mode = data.get("internal_rep_mode", "inf")
-            self.duration_hours.set(data.get("duration_hours", "0"))
-            self.duration_minutes.set(data.get("duration_minutes", "1"))
-            self.duration_seconds.set(data.get("duration_seconds", "0"))
-            self.interval.set(data.get("interval", "0.10"))
-            self.game_mode.set(data.get("game_mode", False))
-            self.sound_alerts.set(data.get("sound_alerts", True))
-            self.keyboard_layout.set(data.get("keyboard_layout", "English QWERTY"))
-            self.app_language.set(data.get("app_language", "English"))
+            if "trigger_value" in data: self.trigger_value.set(data["trigger_value"])
+            if "internal_act_type" in data: self.internal_act_type = data["internal_act_type"]
+            if "action_key_value" in data: self.action_key_value.set(data["action_key_value"])
+            if "internal_act_mouse_val" in data: self.internal_act_mouse_val = data["internal_act_mouse_val"]
+            if "internal_rep_mode" in data: self.internal_rep_mode = data["internal_rep_mode"]
             
-            self._update_all_texts()
-            self.i18n["event_var"].configure(text=self.t["prof_loaded"])
-        except Exception as e:
-            messagebox.showerror(self.t["err_title"], str(e))
+            self._saved_protocol = {
+                "duration_hours": data.get("duration_hours", ""),
+                "duration_minutes": data.get("duration_minutes", ""),
+                "duration_seconds": data.get("duration_seconds", ""),
+                "interval": data.get("interval", "")
+            }
+            if hasattr(self, "entry_dur_h"):
+                self._set_protocol_val("entry_dur_h", self._saved_protocol["duration_hours"])
+                self._set_protocol_val("entry_dur_m", self._saved_protocol["duration_minutes"])
+                self._set_protocol_val("entry_dur_s", self._saved_protocol["duration_seconds"])
+                self._set_protocol_val("entry_interval", self._saved_protocol["interval"])
+                
+            if "game_mode" in data: self.game_mode.set(bool(data["game_mode"]))
+            if "sound_alerts" in data: self.sound_alerts.set(bool(data["sound_alerts"]))
+            if "keyboard_layout" in data: self.keyboard_layout.set(data["keyboard_layout"])
+            if "app_language" in data: self.app_language.set(data["app_language"])
+            
+            if hasattr(self, "i18n") and "event_var" in self.i18n:
+                self.i18n["event_var"].configure(text=self.t.get("settings_saved", "Ayarlar yuklendi."))
+        except Exception:
+            pass
+
+    # Aliases for backward compatibility
+    save_profile = save_settings
+    load_profile = load_settings
 
     # --- Macro Logic ---
     
@@ -827,43 +1103,42 @@ class MacroApp(ctk.CTk):
         else: self.start_macro()
 
     def start_macro(self):
-        # Format and validate interval
-        try:
-            interval = float(self.interval.get())
-            if interval <= 0: interval = 0.01
-        except ValueError:
+        # Format and validate interval (supports both comma and dot, fallback to 0.10 if empty)
+        raw_int = self._get_protocol_val("entry_interval").replace(",", ".").strip()
+        if not raw_int:
             interval = 0.10
-        self.interval.set(f"{interval:.2f}")
+        else:
+            try:
+                interval = float(raw_int)
+                if interval <= 0: interval = 0.10
+            except ValueError:
+                interval = 0.10
 
-        # Format and validate duration
+        # Format and validate duration (fallback to 0 if empty)
         if self.internal_rep_mode == "time":
-            try: h = int(self.duration_hours.get())
+            raw_h = self._get_protocol_val("entry_dur_h")
+            try: h = int(raw_h) if raw_h else 0
             except ValueError: h = 0
             if h < 0: h = 0
+            elif h > 99: h = 99
             
-            try: m = int(self.duration_minutes.get())
+            raw_m = self._get_protocol_val("entry_dur_m")
+            try: m = int(raw_m) if raw_m else 0
             except ValueError: m = 0
             if m < 0: m = 0
             elif m > 59: m = 59
             
-            try: s = int(self.duration_seconds.get())
+            raw_s = self._get_protocol_val("entry_dur_s")
+            try: s = int(raw_s) if raw_s else 0
             except ValueError: s = 0
             if s < 0: s = 0
             elif s > 59: s = 59
-
-            self.duration_hours.set(str(h))
-            self.duration_minutes.set(str(m))
-            self.duration_seconds.set(str(s))
 
             duration = (h * 3600) + (m * 60) + s
         else:
             duration = 0
 
-        self.active_trigger_value = self.trigger_value.get().strip()
-        self.active_act_type = self.internal_act_type
-        self.active_act_key = self.action_key_value.get().strip()
-        self.active_act_mouse = self.internal_act_mouse_val
-        self.active_rep_mode = self.internal_rep_mode
+        self._sync_active_config()
         self.active_duration = duration
         self.active_interval = interval
         
@@ -872,10 +1147,8 @@ class MacroApp(ctk.CTk):
         self.action_running = False
         self.trigger_is_down = False
         
-        self.start_button.configure(text=self.t["btn_stop"], fg_color=CYBER_RED, hover_color="#cc0000")
-        self.i18n["status_var"].configure(text=self.t["status_active"])
-        self.i18n["status_detail"].configure(text=self.t["status_wait"].format(self.active_trigger_value.upper()))
-        self.status_dot.configure(text_color=CYBER_ACCENT)
+        self._update_start_button_state()
+        self._update_status_display()
         self.i18n["event_var"].configure(text=self.t["ev_active"])
         
         self._start_listeners()
@@ -886,10 +1159,8 @@ class MacroApp(ctk.CTk):
         self.is_running = False
         self._stop_listeners()
         
-        self.start_button.configure(text=self.t["btn_start"].format(self.trigger_value.get().upper()), fg_color=CYBER_ACCENT, hover_color="#00b3cc")
-        self.i18n["status_var"].configure(text=self.t["status_ready"])
-        self.i18n["status_detail"].configure(text=self.t["status_stop"])
-        self.status_dot.configure(text_color=CYBER_GREEN)
+        self._update_start_button_state()
+        self._update_status_display()
         self.i18n["event_var"].configure(text=self.t["ev_idle"])
 
     def _start_listeners(self):
@@ -934,37 +1205,51 @@ class MacroApp(ctk.CTk):
         if self.action_running:
             self.stop_event.set()
             self.action_running = False
-            self.after(0, lambda: self.i18n["status_detail"].configure(text=self.t["status_stop"]))
+            self.after(0, self._on_action_paused)
             self._play_sound("stop")
         else:
+            self._sync_active_config()
             self.stop_event.clear()
             self.action_running = True
             self.worker = threading.Thread(target=self._run_actions, daemon=True)
             self.worker.start()
-            self.after(0, lambda: self.i18n["status_detail"].configure(text=self.t["status_run"]))
+            self.after(0, self._on_action_started)
             self._play_sound("start")
 
+    def _on_action_started(self):
+        self._update_status_display()
+        self._update_start_button_state()
+
+    def _on_action_paused(self):
+        self._update_status_display()
+        self._update_start_button_state()
+
     def _run_actions(self):
-        deadline = None if self.active_rep_mode == "inf" else time.monotonic() + self.active_duration
-        while not self.stop_event.is_set() and (deadline is None or time.monotonic() < deadline):
-            
+        self.action_start_time = time.monotonic()
+        while not self.stop_event.is_set():
+            if self.active_rep_mode == "time" and (time.monotonic() - self.action_start_time >= self.active_duration):
+                break
+                
             self._perform_single_action()
             
             if self.stop_event.is_set(): break
                 
-            wait_time = self.active_interval
-            if self.game_mode.get():
-                wait_time = random.uniform(wait_time * 0.8, wait_time * 1.2)
-                
-            if deadline is not None:
-                wait_time = min(wait_time, max(0, deadline - time.monotonic()))
-            
-            if wait_time > 0:
-                self.stop_event.wait(wait_time)
+            start_wait = time.monotonic()
+            while not self.stop_event.is_set():
+                elapsed = time.monotonic() - start_wait
+                target_interval = self.active_interval
+                if self.game_mode.get():
+                    target_interval = random.uniform(target_interval * 0.8, target_interval * 1.2)
+                if elapsed >= target_interval:
+                    break
+                if self.active_rep_mode == "time" and (time.monotonic() - self.action_start_time >= self.active_duration):
+                    break
+                remaining = target_interval - elapsed
+                self.stop_event.wait(min(0.02, max(0.001, remaining)))
                 
         self.action_running = False
         if self.is_running:
-            self.after(0, lambda: self.i18n["status_detail"].configure(text=self.t["status_wait"].format(self.active_trigger_value.upper())))
+            self.after(0, self._on_action_paused)
 
     def _perform_single_action(self):
         if self.active_act_type == "mouse":
