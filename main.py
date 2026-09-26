@@ -368,7 +368,7 @@ class MacroApp(ctk.CTk):
         self.sidebar.grid_columnconfigure(0, weight=1)
 
         try:
-            logo_img = ctk.CTkImage(light_image=Image.open("logo.png"), dark_image=Image.open("logo.png"), size=(60, 60))
+            logo_img = ctk.CTkImage(light_image=Image.open(resource_path("logo.png")), dark_image=Image.open(resource_path("logo.png")), size=(60, 60))
             logo_label = ctk.CTkLabel(self.sidebar, image=logo_img, text="")
             logo_label.grid(row=0, column=0, padx=20, pady=(25, 0), sticky="w")
             
